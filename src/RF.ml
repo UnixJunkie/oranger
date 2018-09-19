@@ -32,7 +32,7 @@ let train
       nb_trees
       model_out_fn
       nprocs in
-  Log.debug "cmd: %s" cmd;
+  Log.info "cmd: %s" cmd;
   let status, log = BatUnix.run_and_read cmd in
   Log.info "%s" log;
   match status with
@@ -56,10 +56,10 @@ let read_raw_class_predictions nb_trees fn =
        remove empty lines *)
     Utls.filter_lines_of_file fn ok_line in
   let nb_preds = L.length pred_strings in
-  Log.debug "nb integer preds: %d" (L.length pred_strings);
+  Log.info "nb integer preds: %d" (L.length pred_strings);
   let pred_classes = L.map robust_float_of_string pred_strings in
   let nb_samples = nb_preds / nb_trees in
-  Log.debug "nb samples: %d" nb_samples;
+  Log.info "nb samples: %d" nb_samples;
   let preds = A.of_list pred_classes in
   let res = ref [] in
   for samp_i = 0 to nb_samples - 1 do
@@ -92,7 +92,7 @@ let predict
       model_fn
       nprocs
       predictions_fn in
-  Log.debug "cmd: %s" cmd;
+  Log.info "cmd: %s" cmd;
   let status, log = BatUnix.run_and_read cmd in
   Log.info "%s" log;
   match status with
