@@ -24,9 +24,9 @@ let main () =
   match preds with
   | None -> assert(false)
   | Some score_stddevs ->
-    (* L.iter (fun (mean, stddev) ->
-     *     printf "%f %f\n" mean stddev
-     *   ) xs *)
+    L.iter (fun (mean, stddev) ->
+        printf "%f %f\n" mean stddev
+      ) score_stddevs;
     let labels = [true; true; true; true; true;
                   false; false; false; false; false] in
     let scores = L.map fst score_stddevs in
