@@ -11,12 +11,12 @@ build: [
 ]
 depends: [
   "dune" {build}
+  "conf-cmake" {build}
   "re"
   "dolog"
   "batteries"
   "minicli" {test}
-  "batteries" {test}
   "cpm" {test}
-  "conf-cmake"
+  "conf-gnuplot" {test}
 #  "conf-git"
 ]
