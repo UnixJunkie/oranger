@@ -5,11 +5,12 @@ module L = BatList
 let main () =
   Log.(set_log_level DEBUG);
   Log.color_on ();
+  let nb_trees = 500 in
   assert(
-    Oranger.RF.(train ~debug:true Classification 500
+    Oranger.RF.(train ~debug:true Classification nb_trees
                   "data/iris.txt" "Species" "ranger_model.rf"));
   let preds =
-    Oranger.RF.classify ~debug:true 500 "data/iris.txt" "ranger_model.rf" in
+    Oranger.RF.classify ~debug:true nb_trees "data/iris.txt" "ranger_model.rf" in
   match preds with
   | None -> assert(false)
   | Some xs ->
