@@ -23,8 +23,8 @@ let train
   | Classification ->
     let cmd =
       sprintf
-        "ranger %s --file %s --depvarname %s --treetype %d --ntree %d \
-         --write %s --nthreads %d --predall"
+        "ml_rf_ranger %s --file %s --depvarname %s --treetype %d --ntree %d \
+         --write --outprefix %s --nthreads %d"
         (if debug then "--verbose" else "")
         data_fn
         dep_var_name
@@ -32,8 +32,11 @@ let train
         nb_trees
         model_out_fn
         nprocs in
+    Log.debug "cmd: %s" cmd;
     let status, log = BatUnix.run_and_read cmd in
     Log.info "%s" log;
     match status with
-    | WEXITED 0 -> true
+    | WEXITED 0 ->
+      (Sys.rename (model_out_fn ^ ".forest") model_out_fn;
+       true)
     | _ -> false
