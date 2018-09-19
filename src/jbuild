@@ -4,9 +4,9 @@
  ((name        oranger)
   (public_name oranger)
   (modules (utls RF))
-  (libraries (dolog batteries))))
+  (libraries (dolog batteries re))))
 
 (executables
  ((names   (test))
   (modules (test))
-  (libraries (dolog cpm minicli batteries oranger))))
+  (libraries (dolog minicli cpm batteries oranger))))

@@ -11,6 +11,7 @@ build: [
 ]
 depends: [
   "dune" {build}
+  "re"
   "dolog"
   "batteries"
   "minicli" {test}
