@@ -12,6 +12,7 @@ build: [
 depends: [
   "dune" {build}
   "dolog"
+  "batteries"
   "minicli" {test}
   "batteries" {test}
   "cpm" {test}

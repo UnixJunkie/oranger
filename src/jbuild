@@ -3,8 +3,8 @@
 (library
  ((name        oranger)
   (public_name oranger)
-  (modules (utls rf))
-  (libraries (dolog))))
+  (modules (utls RF))
+  (libraries (dolog batteries))))
 
 (executables
  ((names   (test))
