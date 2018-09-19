@@ -1,4 +1,4 @@
-opam-version: "1.2"
+opam-version: "2.0"
 maintainer: "unixjunkie@sdf.org"
 authors: ["Francois BERENGER"]
 homepage: "https://github.com/UnixJunkie/oranger"
@@ -17,4 +17,6 @@ depends: [
   "minicli" {test}
   "batteries" {test}
   "cpm" {test}
+  "conf-cmake"
+#  "conf-git"
 ]
