@@ -21,40 +21,43 @@ let train
     (data_fn: filename)
     (dep_var_name: string)
     (model_out_fn: filename): bool =
-  match mode with
-  | Regression -> failwith "not implemented yet"
-  | Classification ->
-    let cmd =
-      sprintf
-        "ml_rf_ranger %s --file %s --depvarname %s --treetype %d --ntree %d \
-         --write --outprefix %s --nthreads %d"
-        (if debug then "--verbose" else "")
-        data_fn
-        dep_var_name
-        (int_of_mode mode)
-        nb_trees
-        model_out_fn
-        nprocs in
-    Log.debug "cmd: %s" cmd;
-    let status, log = BatUnix.run_and_read cmd in
-    Log.info "%s" log;
-    match status with
-    | WEXITED 0 ->
-      (Sys.rename (model_out_fn ^ ".forest") model_out_fn;
-       true)
-    | _ -> false
+  let cmd =
+    sprintf
+      "ml_rf_ranger %s --file %s --depvarname %s --treetype %d --ntree %d \
+       --write --outprefix %s --nthreads %d"
+      (if debug then "--verbose" else "")
+      data_fn
+      dep_var_name
+      (int_of_mode mode)
+      nb_trees
+      model_out_fn
+      nprocs in
+  Log.debug "cmd: %s" cmd;
+  let status, log = BatUnix.run_and_read cmd in
+  Log.info "%s" log;
+  match status with
+  | WEXITED 0 ->
+    (Sys.rename (model_out_fn ^ ".forest") model_out_fn;
+     true)
+  | _ -> false
+
+let robust_float_of_string s =
+  Scanf.sscanf (BatString.strip s) "%f" (fun x -> x)
+
+let alpha_start =
+  Re.Str.regexp "^[a-zA-Z]"
+
+let ok_line l =
+  (l <> "") && (not (Re.Str.string_match alpha_start l 0))
 
 let read_raw_class_predictions nb_trees fn =
-  let status, predicted_classes_str =
-    (* keep only integer lines *)
-    BatUnix.run_and_read
-      (sprintf "awk '/^[0-9]+$/{print $0}' %s" fn) in
-  assert(status = WEXITED 0);
   let pred_strings =
-    BatString.nsplit ~by:"\n" (BatString.strip predicted_classes_str) in
+    (* keep only numeric lines; they don't start with a letter;
+       remove empty lines *)
+    Utls.filter_lines_of_file fn ok_line in
   let nb_preds = L.length pred_strings in
   Log.debug "nb integer preds: %d" (L.length pred_strings);
-  let pred_classes = L.map float_of_string pred_strings in
+  let pred_classes = L.map robust_float_of_string pred_strings in
   let nb_samples = nb_preds / nb_trees in
   Log.debug "nb samples: %d" nb_samples;
   let preds = A.of_list pred_classes in
@@ -73,7 +76,7 @@ let read_raw_class_predictions nb_trees fn =
   done;
   L.rev !res
 
-let classify
+let predict
     ?debug:(debug = false)
     ?nprocs:(nprocs = 1)
     (nb_trees: int)
