@@ -1,6 +1,6 @@
 opam-version: "2.0"
 maintainer: "unixjunkie@sdf.org"
-authors: ["Francois BERENGER"]
+authors: ["Francois Berenger"]
 homepage: "https://github.com/UnixJunkie/oranger"
 bug-reports: "https://github.com/UnixJunkie/oranger/issues"
 dev-repo: "git+https://github.com/UnixJunkie/oranger.git"
@@ -12,11 +12,12 @@ build: [
 depends: [
   "dune" {build}
   "conf-cmake" {build}
+  "conf-wget" {build}
+#  "conf-c++" {build}
   "re"
   "dolog"
   "batteries"
   "minicli" {test}
   "cpm" {test}
   "conf-gnuplot" {test}
-#  "conf-git"
 ]
