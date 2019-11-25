@@ -4,6 +4,7 @@
  (modules utls RF)
  (libraries dolog batteries re))
 
+;; never installed executables, because they don't have a public name
 (executables
  (names test)
  (modules test)

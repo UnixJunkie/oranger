@@ -7,7 +7,7 @@ dev-repo: "git+https://github.com/UnixJunkie/oranger.git"
 license: "LGPL + linking exception"
 build: [
   ["sh" "install_ranger.sh"]
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
   "dune" {build}
