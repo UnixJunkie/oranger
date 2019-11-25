@@ -1,4 +1,3 @@
-open Printf
 
 module L = BatList
 
