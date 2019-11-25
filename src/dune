@@ -1,0 +1,10 @@
+(library
+ (name oranger)
+ (public_name oranger)
+ (modules utls RF)
+ (libraries dolog batteries re))
+
+(executables
+ (names test)
+ (modules test)
+ (libraries dolog minicli cpm batteries oranger))
