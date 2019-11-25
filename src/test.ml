@@ -1,5 +1,6 @@
 open Printf
 
+module CLI = Minicli.CLI
 module L = BatList
 
 module Score_label = struct
@@ -10,11 +11,10 @@ end
 
 module ROC = Cpm.MakeROC.Make(Score_label)
 
-
 let main () =
   Log.(set_log_level DEBUG);
   Log.color_on ();
-  let argc, args = CLI.init () in
+  let _argc, args = CLI.init () in
   let verbose = CLI.get_set_bool ["-v"] args in
   let nb_trees = 500 in
   (* classification test *)

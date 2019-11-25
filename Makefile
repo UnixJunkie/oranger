@@ -1,4 +1,4 @@
-.PHONY: build clean edit install uninstall reinstall
+.PHONY: build clean edit install uninstall reinstall test
 
 build:
 	dune build @install -j `getconf _NPROCESSORS_ONLN`
@@ -11,6 +11,10 @@ edit:
 
 install: build
 	dune install
+
+test: build
+	dune build src/test.exe
+	_build/default/src/test.exe
 
 uninstall:
 	dune uninstall
