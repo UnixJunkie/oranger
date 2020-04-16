@@ -2,6 +2,7 @@ open Printf
 
 module CLI = Minicli.CLI
 module L = BatList
+module Log = Dolog.Log
 
 module Score_label = struct
   type t = bool * float (* (label, pred_score) *)
