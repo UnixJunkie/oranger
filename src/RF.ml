@@ -3,6 +3,7 @@ open Printf
 
 module A = BatArray
 module L = BatList
+module LO = Line_oriented
 module Log = Dolog.Log
 
 type filename = string
@@ -55,7 +56,7 @@ let read_raw_class_predictions nb_trees fn =
   let pred_strings =
     (* keep only numeric lines; they don't start with a letter;
        remove empty lines *)
-    Utls.filter_lines_of_file fn ok_line in
+    LO.filter fn ok_line in
   let nb_preds = L.length pred_strings in
   Log.info "nb integer preds: %d" (L.length pred_strings);
   let pred_classes = L.map robust_float_of_string pred_strings in
