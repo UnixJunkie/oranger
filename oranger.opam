@@ -21,14 +21,19 @@ depends: [
   "re"
   "dolog" {>= "6.0.0"}
   "batteries"
-  "minicli" {with-test & >= "5.0.0"}
-  "cpm" {with-test}
-  "conf-gnuplot" {with-test}
+  "minicli" {>= "5.0.0"}
+  "cpm"
+  "line_oriented"
+]
+depopts: [
+  "conf-gnuplot"
 ]
 synopsis: "OCaml wrapper for the ranger (C++) random forests implementation"
 description: """
 Ranger is run from the command line and data are exchanged via text files.
-This is quick and dirty, not a clean OCaml interface to ranger."""
+This is quick and dirty, not a clean OCaml interface to ranger.
+The oranger_rfr program allows to train/test a random-forests regressor model.
+"""
 extra-source "0.9.11.tar.gz" {
   src: "https://github.com/imbs-hl/ranger/archive/0.9.11.tar.gz"
   checksum: "md5=cf770dfdde5ef250bfd561ef2b0758ee"
