@@ -20,18 +20,23 @@ let train
     ?nprocs:(nprocs = 1)
     (mode: mode)
     (nb_trees: int)
+    (mtry: int option)
     (data_fn: filename)
     (dep_var_name: string)
     (model_out_fn: filename): bool =
+  let mtry_str = match mtry with
+    | None -> ""
+    | Some m -> sprintf "--mtry %d" m in
   let cmd =
     sprintf
       "ml_rf_ranger %s --file %s --depvarname %s --treetype %d --ntree %d \
-       --write --outprefix %s --nthreads %d"
+       %s --write --outprefix %s --nthreads %d"
       (if debug then "--verbose" else "")
       data_fn
       dep_var_name
       (int_of_mode mode)
       nb_trees
+      mtry_str
       model_out_fn
       nprocs in
   Log.info "cmd: %s" cmd;

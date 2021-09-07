@@ -5,10 +5,12 @@ type mode = Regression
           | Classification
 
 val train: ?debug:bool -> ?nprocs:int ->
-  mode -> int -> filename -> string -> filename -> bool
-(** [train ~debug ~nprocs mode nb_trees data_fn dep_var_name out_fn]
-    will train a Random Forests model with [nb_trees], reading
-    training data from [data_fn] and using [mode] (either Regression
+  mode -> int -> int option -> filename -> string -> filename -> bool
+(** [train ~debug ~nprocs mode nb_trees mtry data_fn dep_var_name out_fn]
+    will train a Random Forests model with [nb_trees],
+    optionally using [mtry] features to split at each node (sqrt(|features|)
+    if None),
+    reading training data from [data_fn] and using [mode] (either Regression
     or Classification).
     [dep_var_name] is the name of the column holding the target
     value (you want to predict that value with your model later on)

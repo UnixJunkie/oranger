@@ -30,12 +30,12 @@ type mode = Save of string
           | Save_to_temp
 
 let train_model
-    nb_features verbose nprocs nb_trees training_set model_fn =
+    nb_features verbose nprocs nb_trees mtry training_set model_fn =
   let train_csv_fn = Fn.temp_file "RFR_train_" ".csv" in
   Common.csv_dump train_csv_fn nb_features training_set;
   let could_train =
     Oranger.RF.train
-      ~debug:verbose ~nprocs Regression nb_trees train_csv_fn
+      ~debug:verbose ~nprocs Regression nb_trees mtry train_csv_fn
       "Y" (* name of the target variable column *)
       model_fn in
   Utls.enforce could_train (fun () ->
@@ -89,14 +89,14 @@ let par_test_model
   Parany.run nprocs ~demux ~work ~mux;
   close_out out
 
-let train_test_NxCV verbose nprocs nb_trees nb_features nfolds training_set =
+let train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds training_set =
   let folds = Cpm.Utls.cv_folds nfolds training_set in
   Parany.Parmap.parfold nprocs
     (fun (train, test) ->
        let actual = L.map Mol.get_value test in
        let model_fn = Fn.temp_file "RFR_" ".model" in
        train_model
-         nb_features verbose 1 nb_trees train model_fn;
+         nb_features verbose 1 nb_trees mtry train model_fn;
        let names_preds_stdevs =
          test_model nb_features verbose nb_trees test model_fn None in
        L.map2 Utls.prepend3 actual names_preds_stdevs)
@@ -128,6 +128,8 @@ let main () =
                used to train (default=%.2f)\n  \
                [-np <int>]: max number of processes (default=1)\n  \
                [-n <int>]: |RF|; default=100\n  \
+               [--mtry <int>]: number of randomly selected features\n  \
+               to use at each split (default=sqrt(|features|))\n  \
                [-o <filename>]: output scores to file\n  \
                [--train <train.txt>]: training set (overrides -p)\n  \
                [--valid <valid.txt>]: validation set (overrides -p)\n  \
@@ -148,6 +150,7 @@ let main () =
     end;
   let train_portion = ref (CLI.get_float_def ["-p"] args train_portion_def) in
   let nb_trees = CLI.get_int_def ["-n"] args 100 in
+  let mtry = CLI.get_int_opt ["--mtry"] args in
   let nprocs = CLI.get_int_def ["-np"] args 1 in
   let maybe_output_fn = CLI.get_string_opt ["-o"] args in
   if CLI.get_set_bool ["--valid"] args then failwith "not implemented yet";
@@ -204,7 +207,7 @@ let main () =
   Log.info "nb_features: %d" nb_features;
   let acts_names_preds_stdevs = match maybe_nfolds with
     | Some nfolds ->
-      train_test_NxCV verbose nprocs nb_trees nb_features nfolds train
+      train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds train
     | None ->
       begin
         begin match !mode with
@@ -218,10 +221,10 @@ let main () =
                 exit 0)
             )
           | Save _fn ->
-            (train_model nb_features verbose nprocs nb_trees train model_fn;
+            (train_model nb_features verbose nprocs nb_trees mtry train model_fn;
              exit 0)
           | Save_to_temp ->
-            train_model nb_features verbose nprocs nb_trees train model_fn
+            train_model nb_features verbose nprocs nb_trees mtry train model_fn
         end;
         let actual = L.map Mol.get_value test in
         let names_preds_stdevs =
