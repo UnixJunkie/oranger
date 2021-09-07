@@ -128,8 +128,8 @@ let main () =
                used to train (default=%.2f)\n  \
                [-np <int>]: max number of processes (default=1)\n  \
                [-n <int>]: |RF|; default=100\n  \
-               [--mtry <int>]: number of randomly selected features\n  \
-               to use at each split (default=sqrt(|features|))\n  \
+               [--mtry <float>]: proportion of randomly selected features\n  \
+               to use at each split (cf. ranger's doc for default)\n  \
                [-o <filename>]: output scores to file\n  \
                [--train <train.txt>]: training set (overrides -p)\n  \
                [--valid <valid.txt>]: validation set (overrides -p)\n  \
@@ -150,7 +150,7 @@ let main () =
     end;
   let train_portion = ref (CLI.get_float_def ["-p"] args train_portion_def) in
   let nb_trees = CLI.get_int_def ["-n"] args 100 in
-  let mtry = CLI.get_int_opt ["--mtry"] args in
+  let mtry' = CLI.get_float_opt ["--mtry"] args in
   let nprocs = CLI.get_int_def ["-np"] args 1 in
   let maybe_output_fn = CLI.get_string_opt ["-o"] args in
   if CLI.get_set_bool ["--valid"] args then failwith "not implemented yet";
@@ -204,6 +204,16 @@ let main () =
     let training, testing =
       Common.train_test_split !train_portion all_molecules in
     (max_feat + 1, training, testing) in
+  let mtry = match mtry' with
+    | None -> None
+    | Some p ->
+      begin
+        Utls.enforce (p > 0.0 && p <= 1.0) (fun () ->
+            sprintf "p not in ]0.0:1.0]: %f" p
+          );
+        let split_feats = BatFloat.round_to_int (p *. (float nb_features)) in
+        Some split_feats
+      end in
   Log.info "nb_features: %d" nb_features;
   let acts_names_preds_stdevs = match maybe_nfolds with
     | Some nfolds ->
