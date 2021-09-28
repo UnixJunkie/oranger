@@ -178,7 +178,6 @@ let main () =
   end;
   let y_rand = CLI.get_set_bool ["--y-rand"] args in
   CLI.finalize(); (* ------------------------------------------------------- *)
-  let data_dir = Fn.dirname train_fn in
   let rng = match maybe_seed with
     | None -> Random.State.make_self_init ()
     | Some seed -> Random.State.make [|seed|] in
@@ -204,13 +203,20 @@ let main () =
     let training, testing =
       Common.train_test_split !train_portion all_molecules in
     (max_feat + 1, training, testing) in
+  let mtry_p = ref 0.0 in
   let mtry = match mtry' with
-    | None -> None
+    | None ->
+      begin
+        (* ranger's default *)
+        mtry_p := (sqrt (float nb_features)) /. (float nb_features);
+        None
+      end
     | Some p ->
       begin
         Utls.enforce (p > 0.0 && p <= 1.0) (fun () ->
             sprintf "p not in ]0.0:1.0]: %f" p
           );
+        mtry_p := p;
         let split_feats = BatFloat.round_to_int (p *. (float nb_features)) in
         Some split_feats
       end in
@@ -246,8 +252,10 @@ let main () =
   let preds = L.map Utls.trd4 acts_names_preds_stdevs in
   let stdevs = L.map Utls.frt4 acts_names_preds_stdevs in
   let r2 = Stats.r2 actual preds in
+  let rmse = Stats.rmse actual preds in
   let plot_title =
-    sprintf "T=%s |RF|=%d k=%d R2=%.2f" data_dir nb_trees nfolds r2 in
+    sprintf "T=%s N=%d mtry=%.3g k=%d R2=%.2f RMSE=%.3f"
+      train_fn nb_trees !mtry_p nfolds r2 rmse in
   Log.info "%s" plot_title;
   if rec_plot then
     Gnuplot.rec_curve actual preds;
