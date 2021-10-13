@@ -130,6 +130,8 @@ let main () =
                [-n <int>]: |RF|; default=100\n  \
                [--mtry <float>]: proportion of randomly selected features\n  \
                to use at each split (cf. ranger's doc for default)\n  \
+               [--scan-mtry]: scan for best mtry in [0.001,0.002,0.005,...,1.0]\n  \
+               (incompatible with --mtry)\n  \
                [-o <filename>]: output scores to file\n  \
                [--train <train.txt>]: training set (overrides -p)\n  \
                [--valid <valid.txt>]: validation set (overrides -p)\n  \
@@ -151,6 +153,13 @@ let main () =
   let train_portion = ref (CLI.get_float_def ["-p"] args train_portion_def) in
   let nb_trees = CLI.get_int_def ["-n"] args 100 in
   let mtry' = CLI.get_float_opt ["--mtry"] args in
+  if BatOption.is_some mtry' && CLI.get_set_bool ["--scan-mtry"] args then
+    failwith "RFR.main: --mtry and --scan-mtry are incompatible";
+  let _mtrys =
+    if CLI.get_set_bool ["--scan-mtry"] args then
+      (* exponential scan *)
+      [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+    else [] in
   let nprocs = CLI.get_int_def ["-np"] args 1 in
   let maybe_output_fn = CLI.get_string_opt ["-o"] args in
   if CLI.get_set_bool ["--valid"] args then failwith "not implemented yet";
