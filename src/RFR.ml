@@ -112,6 +112,21 @@ let y_randomize rng training_set =
       Mol.set_value mol act
     ) training_set rand_acts
 
+let eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs =
+  let actual = L.map Utls.fst4 acts_names_preds_stdevs in
+  let preds = L.map Utls.trd4 acts_names_preds_stdevs in
+  let stdevs = L.map Utls.frt4 acts_names_preds_stdevs in
+  let r2 = Stats.r2 actual preds in
+  let rmse = Stats.rmse actual preds in
+  let plot_title =
+    sprintf "T=%s N=%d mtry=%.3g k=%d R2=%.2f RMSE=%.3f"
+      train_fn nb_trees mtry_p nfolds r2 rmse in
+  Log.info "%s" plot_title;
+  if rec_plot then
+    Gnuplot.rec_curve actual preds;
+  if not no_reg_plot then
+    Gnuplot.regr_plot plot_title actual preds stdevs
+
 let main () =
   Log.color_on ();
   Log.set_log_level Log.INFO;
@@ -257,18 +272,6 @@ let main () =
         L.map2 Utls.prepend3 actual names_preds_stdevs
       end in
   let nfolds = BatOption.default 1 maybe_nfolds in
-  let actual = L.map Utls.fst4 acts_names_preds_stdevs in
-  let preds = L.map Utls.trd4 acts_names_preds_stdevs in
-  let stdevs = L.map Utls.frt4 acts_names_preds_stdevs in
-  let r2 = Stats.r2 actual preds in
-  let rmse = Stats.rmse actual preds in
-  let plot_title =
-    sprintf "T=%s N=%d mtry=%.3g k=%d R2=%.2f RMSE=%.3f"
-      train_fn nb_trees !mtry_p nfolds r2 rmse in
-  Log.info "%s" plot_title;
-  if rec_plot then
-    Gnuplot.rec_curve actual preds;
-  if not no_reg_plot then
-    Gnuplot.regr_plot plot_title actual preds stdevs
+  eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees !mtry_p acts_names_preds_stdevs
 
 let () = main ()
