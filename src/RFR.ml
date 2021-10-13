@@ -150,8 +150,7 @@ let mtry_of_mtry_prime nb_features mtry' =
     Some split_feats
 
 let test_mtry' verbose nprocs
-    rec_plot no_reg_plot nb_features nb_trees maybe_nfolds mtry'
-    train_fn train test =
+    rec_plot no_reg_plot nb_features nb_trees maybe_nfolds train_fn train test mtry' =
   let mtry_p = mtry_p_of_mtry nb_features mtry' in
   let mtry = mtry_of_mtry_prime nb_features mtry' in
   let acts_names_preds_stdevs = match maybe_nfolds with
@@ -214,10 +213,10 @@ let main () =
     failwith "RFR.main: --mtry and --scan-mtry are incompatible";
   let mtrys =
     if CLI.get_set_bool ["--scan-mtry"] args then
-      (* exponential scan *) [Some 0.001, Some 0.002, Some 0.005,
-                              Some 0.01 , Some 0.02 , Some 0.05,
-                              Some 0.1  , Some 0.2  , Some 0.5,
-                              Some 1.0]
+      (* exponential scan *) [Some 0.001; Some 0.002; Some 0.005;
+                              Some 0.01 ; Some 0.02 ; Some 0.05 ;
+                              Some 0.1  ; Some 0.2  ; Some 0.5  ;
+                              Some 1.0  ]
     else [] in
   let nprocs = CLI.get_int_def ["-np"] args 1 in
   let maybe_output_fn = CLI.get_string_opt ["-o"] args in
@@ -305,6 +304,9 @@ let main () =
     let nfolds = BatOption.default 1 maybe_nfolds in
     eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs
   | _x :: _xs -> (* mtry scan *)
-    failwith "not implemented yet"
+    L.iter (test_mtry' verbose nprocs
+              rec_plot no_reg_plot nb_features nb_trees maybe_nfolds
+              train_fn train test
+           ) mtrys
 
 let () = main ()
