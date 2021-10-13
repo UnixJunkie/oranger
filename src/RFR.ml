@@ -192,10 +192,12 @@ let main () =
   let mtry' = CLI.get_float_opt ["--mtry"] args in
   if BatOption.is_some mtry' && CLI.get_set_bool ["--scan-mtry"] args then
     failwith "RFR.main: --mtry and --scan-mtry are incompatible";
-  let _mtrys =
+  let mtrys =
     if CLI.get_set_bool ["--scan-mtry"] args then
-      (* exponential scan *)
-      [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+      (* exponential scan *) [Some 0.001, Some 0.002, Some 0.005,
+                              Some 0.01 , Some 0.02 , Some 0.05,
+                              Some 0.1  , Some 0.2  , Some 0.5,
+                              Some 1.0]
     else [] in
   let nprocs = CLI.get_int_def ["-np"] args 1 in
   let maybe_output_fn = CLI.get_string_opt ["-o"] args in
@@ -249,36 +251,40 @@ let main () =
     let training, testing =
       Common.train_test_split !train_portion all_molecules in
     (max_feat + 1, training, testing) in
-  let mtry_p = mtry_p_of_mtry nb_features mtry' in
-  let mtry = mtry_of_mtry_prime nb_features mtry' in
-  Log.info "nb_features: %d" nb_features;
-  let acts_names_preds_stdevs = match maybe_nfolds with
-    | Some nfolds ->
-      train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds train
-    | None ->
-      begin
-        begin match !mode with
-          | Load _ ->
-            (* production run *)
-            (match maybe_output_fn with
-             | None -> failwith "RFR: -o option not given (output scores file)"
-             | Some scores_fn ->
-               (par_test_model nprocs 1000 nb_features nb_trees
-                  test model_fn scores_fn;
-                exit 0)
-            )
-          | Save _fn ->
-            (train_model nb_features verbose nprocs nb_trees mtry train model_fn;
-             exit 0)
-          | Save_to_temp ->
-            train_model nb_features verbose nprocs nb_trees mtry train model_fn
-        end;
-        let actual = L.map Mol.get_value test in
-        let names_preds_stdevs =
-          test_model nb_features verbose nb_trees test model_fn maybe_output_fn in
-        L.map2 Utls.prepend3 actual names_preds_stdevs
-      end in
-  let nfolds = BatOption.default 1 maybe_nfolds in
-  eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs
+  match mtrys with
+  | [] ->
+    let mtry_p = mtry_p_of_mtry nb_features mtry' in
+    let mtry = mtry_of_mtry_prime nb_features mtry' in
+    Log.info "nb_features: %d" nb_features;
+    let acts_names_preds_stdevs = match maybe_nfolds with
+      | Some nfolds ->
+        train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds train
+      | None ->
+        begin
+          begin match !mode with
+            | Load _ ->
+              (* production run *)
+              (match maybe_output_fn with
+               | None -> failwith "RFR: -o option not given (output scores file)"
+               | Some scores_fn ->
+                 (par_test_model nprocs 1000 nb_features nb_trees
+                    test model_fn scores_fn;
+                  exit 0)
+              )
+            | Save _fn ->
+              (train_model nb_features verbose nprocs nb_trees mtry train model_fn;
+               exit 0)
+            | Save_to_temp ->
+              train_model nb_features verbose nprocs nb_trees mtry train model_fn
+          end;
+          let actual = L.map Mol.get_value test in
+          let names_preds_stdevs =
+            test_model nb_features verbose nb_trees test model_fn maybe_output_fn in
+          L.map2 Utls.prepend3 actual names_preds_stdevs
+        end in
+    let nfolds = BatOption.default 1 maybe_nfolds in
+    eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs
+  | _x :: _xs ->
+    failwith "not implemented yet"
 
 let () = main ()
