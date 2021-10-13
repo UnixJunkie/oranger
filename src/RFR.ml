@@ -304,9 +304,11 @@ let main () =
     let nfolds = BatOption.default 1 maybe_nfolds in
     eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs
   | _x :: _xs -> (* mtry scan *)
-    L.iter (test_mtry' verbose nprocs
-              rec_plot no_reg_plot nb_features nb_trees maybe_nfolds
-              train_fn train test
-           ) mtrys
+    Parany.Parmap.pariter nprocs
+      (test_mtry' verbose 1
+         rec_plot no_reg_plot nb_features nb_trees maybe_nfolds
+         train_fn train test
+      ) (L.rev mtrys) (* put heavier computation first (mtry ~= 1);
+                         should scale better *)
 
 let () = main ()
