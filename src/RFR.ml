@@ -149,6 +149,26 @@ let mtry_of_mtry_prime nb_features mtry' =
     let split_feats = BatFloat.round_to_int (p *. (float nb_features)) in
     Some split_feats
 
+let test_mtry' verbose nprocs
+    rec_plot no_reg_plot nb_features nb_trees maybe_nfolds mtry'
+    train_fn train test =
+  let mtry_p = mtry_p_of_mtry nb_features mtry' in
+  let mtry = mtry_of_mtry_prime nb_features mtry' in
+  let acts_names_preds_stdevs = match maybe_nfolds with
+    | Some nfolds ->
+      train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds train
+    | None ->
+      begin
+        let model_fn = Fn.temp_file "RFR_" ".model" in
+        train_model nb_features verbose nprocs nb_trees mtry train model_fn;
+        let actual = L.map Mol.get_value test in
+        let names_preds_stdevs =
+          test_model nb_features verbose nb_trees test model_fn None in
+        L.map2 Utls.prepend3 actual names_preds_stdevs
+      end in
+  let nfolds = BatOption.default 1 maybe_nfolds in
+  eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs
+
 let main () =
   Log.color_on ();
   Log.set_log_level Log.INFO;
@@ -251,11 +271,11 @@ let main () =
     let training, testing =
       Common.train_test_split !train_portion all_molecules in
     (max_feat + 1, training, testing) in
+  Log.info "nb_features: %d" nb_features;  
   match mtrys with
   | [] ->
     let mtry_p = mtry_p_of_mtry nb_features mtry' in
     let mtry = mtry_of_mtry_prime nb_features mtry' in
-    Log.info "nb_features: %d" nb_features;
     let acts_names_preds_stdevs = match maybe_nfolds with
       | Some nfolds ->
         train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds train
@@ -284,7 +304,7 @@ let main () =
         end in
     let nfolds = BatOption.default 1 maybe_nfolds in
     eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs
-  | _x :: _xs ->
+  | _x :: _xs -> (* mtry scan *)
     failwith "not implemented yet"
 
 let () = main ()
