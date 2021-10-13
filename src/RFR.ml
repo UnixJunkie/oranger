@@ -127,6 +127,17 @@ let eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_p
   if not no_reg_plot then
     Gnuplot.regr_plot plot_title actual preds stdevs
 
+let mtry_p_of_mtry nb_features mtry' =
+  match mtry' with
+  | None -> (* ranger's default *)
+    (sqrt (float nb_features)) /. (float nb_features)
+  | Some p ->
+    let () =
+      Utls.enforce (p > 0.0 && p <= 1.0) (fun () ->
+          sprintf "p not in ]0.0:1.0]: %f" p
+        ) in
+    p
+
 let main () =
   Log.color_on ();
   Log.set_log_level Log.INFO;
@@ -227,23 +238,16 @@ let main () =
     let training, testing =
       Common.train_test_split !train_portion all_molecules in
     (max_feat + 1, training, testing) in
-  let mtry_p = ref 0.0 in
+  let mtry_p = mtry_p_of_mtry nb_features mtry' in
   let mtry = match mtry' with
-    | None ->
-      begin
-        (* ranger's default *)
-        mtry_p := (sqrt (float nb_features)) /. (float nb_features);
-        None
-      end
+    | None -> None
     | Some p ->
-      begin
+      let () =
         Utls.enforce (p > 0.0 && p <= 1.0) (fun () ->
             sprintf "p not in ]0.0:1.0]: %f" p
-          );
-        mtry_p := p;
-        let split_feats = BatFloat.round_to_int (p *. (float nb_features)) in
-        Some split_feats
-      end in
+          ) in
+      let split_feats = BatFloat.round_to_int (p *. (float nb_features)) in
+      Some split_feats in
   Log.info "nb_features: %d" nb_features;
   let acts_names_preds_stdevs = match maybe_nfolds with
     | Some nfolds ->
@@ -272,6 +276,6 @@ let main () =
         L.map2 Utls.prepend3 actual names_preds_stdevs
       end in
   let nfolds = BatOption.default 1 maybe_nfolds in
-  eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees !mtry_p acts_names_preds_stdevs
+  eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs
 
 let () = main ()
