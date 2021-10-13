@@ -138,6 +138,17 @@ let mtry_p_of_mtry nb_features mtry' =
         ) in
     p
 
+let mtry_of_mtry_prime nb_features mtry' =
+  match mtry' with
+  | None -> None
+  | Some p ->
+    let () =
+      Utls.enforce (p > 0.0 && p <= 1.0) (fun () ->
+          sprintf "p not in ]0.0:1.0]: %f" p
+        ) in
+    let split_feats = BatFloat.round_to_int (p *. (float nb_features)) in
+    Some split_feats
+
 let main () =
   Log.color_on ();
   Log.set_log_level Log.INFO;
@@ -239,15 +250,7 @@ let main () =
       Common.train_test_split !train_portion all_molecules in
     (max_feat + 1, training, testing) in
   let mtry_p = mtry_p_of_mtry nb_features mtry' in
-  let mtry = match mtry' with
-    | None -> None
-    | Some p ->
-      let () =
-        Utls.enforce (p > 0.0 && p <= 1.0) (fun () ->
-            sprintf "p not in ]0.0:1.0]: %f" p
-          ) in
-      let split_feats = BatFloat.round_to_int (p *. (float nb_features)) in
-      Some split_feats in
+  let mtry = mtry_of_mtry_prime nb_features mtry' in
   Log.info "nb_features: %d" nb_features;
   let acts_names_preds_stdevs = match maybe_nfolds with
     | Some nfolds ->
