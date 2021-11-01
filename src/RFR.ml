@@ -17,6 +17,7 @@ module Fp = Molenc.Fingerprint
 module L = BatList
 module Log = Dolog.Log
 module LO = Line_oriented
+module S = BatString
 module Stats = Cpm.RegrStats
 module Utls = Oranger.Utls
 
@@ -217,7 +218,14 @@ let main () =
                               Some 0.01 ; Some 0.02 ; Some 0.05 ;
                               Some 0.1  ; Some 0.2  ; Some 0.5  ;
                               Some 1.0  ]
-    else [] in
+    else
+      begin
+        match CLI.get_string_opt ["--mtry-range"] args with
+        | None -> []
+        | Some range_str ->
+          L.map (fun x_str -> Some (float_of_string x_str))
+            (S.split_on_char ',' range_str)
+      end in
   let nprocs = CLI.get_int_def ["-np"] args 1 in
   let maybe_output_fn = CLI.get_string_opt ["-o"] args in
   if CLI.get_set_bool ["--valid"] args then failwith "not implemented yet";
