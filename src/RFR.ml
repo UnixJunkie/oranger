@@ -189,6 +189,7 @@ let main () =
                to use at each split (cf. ranger's doc for default)\n  \
                [--scan-mtry]: scan for best mtry in [0.001,0.002,0.005,...,1.0]\n  \
                (incompatible with --mtry)\n  \
+               [--mtry-range <string>]: mtrys to test e.g. \"0.001,0.002,0.005\"\n  \
                [-o <filename>]: output scores to file\n  \
                [--train <train.txt>]: training set (overrides -p)\n  \
                [--valid <valid.txt>]: validation set (overrides -p)\n  \
