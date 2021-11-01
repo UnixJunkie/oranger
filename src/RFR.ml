@@ -209,23 +209,19 @@ let main () =
     end;
   let train_portion = ref (CLI.get_float_def ["-p"] args train_portion_def) in
   let nb_trees = CLI.get_int_def ["-n"] args 100 in
-  let mtry' = CLI.get_float_opt ["--mtry"] args in
-  if BatOption.is_some mtry' && CLI.get_set_bool ["--scan-mtry"] args then
-    failwith "RFR.main: --mtry and --scan-mtry are incompatible";
-  let mtrys =
-    if CLI.get_set_bool ["--scan-mtry"] args then
-      (* exponential scan *) [Some 0.001; Some 0.002; Some 0.005;
-                              Some 0.01 ; Some 0.02 ; Some 0.05 ;
-                              Some 0.1  ; Some 0.2  ; Some 0.5  ;
-                              Some 1.0  ]
-    else
-      begin
-        match CLI.get_string_opt ["--mtry-range"] args with
-        | None -> []
-        | Some range_str ->
-          L.map (fun x_str -> Some (float_of_string x_str))
-            (S.split_on_char ',' range_str)
-      end in
+  (* mtry scan? *)
+  let mtrys = match (CLI.get_float_opt ["--mtry"] args,
+                     CLI.get_set_bool ["--scan-mtry"] args,
+                     CLI.get_string_opt ["--mtry-range"] args) with
+  | (Some mtry', false, None) -> [Some mtry'] (* single mtry value *)
+  | (None, true, None) -> (* exponential scan *)
+    [Some 0.001; Some 0.002; Some 0.005;
+     Some 0.01 ; Some 0.02 ; Some 0.05 ;
+     Some 0.1  ; Some 0.2  ; Some 0.5  ; Some 1.0]
+  | (None, false, Some range_str) ->
+    L.map (fun x_str -> Some (float_of_string x_str))
+      (S.split_on_char ',' range_str)
+  | _ -> failwith "RFR.main: use only one of {--mtry|--scan-mtry|--mtry-range}" in
   let nprocs = CLI.get_int_def ["-np"] args 1 in
   let maybe_output_fn = CLI.get_string_opt ["-o"] args in
   if CLI.get_set_bool ["--valid"] args then failwith "not implemented yet";
@@ -278,9 +274,10 @@ let main () =
     let training, testing =
       Common.train_test_split !train_portion all_molecules in
     (max_feat + 1, training, testing) in
-  Log.info "nb_features: %d" nb_features;  
+  Log.info "nb_features: %d" nb_features;
   match mtrys with
-  | [] ->
+  | [] -> failwith "RFR.main: no mtry value"
+  | [mtry'] ->
     let mtry_p = mtry_p_of_mtry nb_features mtry' in
     let mtry = mtry_of_mtry_prime nb_features mtry' in
     let acts_names_preds_stdevs = match maybe_nfolds with
