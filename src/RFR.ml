@@ -120,8 +120,8 @@ let eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_p
   let r2 = Stats.r2 actual preds in
   let rmse = Stats.rmse actual preds in
   let plot_title =
-    sprintf "T=%s N=%d mtry=%.3g k=%d R2=%.2f RMSE=%.3f"
-      train_fn nb_trees mtry_p nfolds r2 rmse in
+    sprintf "N=%d mtry=%.3g k=%d R2=%.2f RMSE=%.3f T=%s"
+      nb_trees mtry_p nfolds r2 rmse train_fn in
   Log.info "%s" plot_title;
   if rec_plot then
     Gnuplot.rec_curve actual preds;
