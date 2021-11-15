@@ -216,9 +216,11 @@ let main () =
                      CLI.get_string_opt ["--mtry-range"] args) with
   | (Some mtry', false, None) -> [Some mtry'] (* single mtry value *)
   | (None, true, None) -> (* exponential scan *)
-    [Some 0.001; Some 0.002; Some 0.005;
-     Some 0.01 ; Some 0.02 ; Some 0.05 ;
-     Some 0.1  ; Some 0.2  ; Some 0.5  ; Some 1.0]
+    (* high values first, for better parallelization if not enough cores
+       (they'll take longer to complete *)
+    L.rev [Some 0.001; Some 0.002; Some 0.005;
+           Some 0.01 ; Some 0.02 ; Some 0.05 ;
+           Some 0.1  ; Some 0.2  ; Some 0.5  ; Some 1.0]
   | (None, false, Some range_str) ->
     L.map (fun x_str -> Some (float_of_string x_str))
       (S.split_on_char ',' range_str)
