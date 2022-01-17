@@ -186,7 +186,7 @@ let main () =
                [-np <int>]: max number of processes (default=1)\n  \
                [-n <int>]: |RF|; default=100\n  \
                [--mtry <float>]: proportion of randomly selected features\n  \
-               to use at each split (cf. ranger's doc for default)\n  \
+               to use at each split (default=(sqrt(|features|))/|features|)\n  \
                [--scan-mtry]: scan for best mtry in [0.001,0.002,0.005,...,1.0]\n  \
                (incompatible with --mtry)\n  \
                [--mtry-range <string>]: mtrys to test e.g. \"0.001,0.002,0.005\"\n  \
@@ -210,21 +210,6 @@ let main () =
     end;
   let train_portion = ref (CLI.get_float_def ["-p"] args train_portion_def) in
   let nb_trees = CLI.get_int_def ["-n"] args 100 in
-  (* mtry scan? *)
-  let mtrys = match (CLI.get_float_opt ["--mtry"] args,
-                     CLI.get_set_bool ["--scan-mtry"] args,
-                     CLI.get_string_opt ["--mtry-range"] args) with
-  | (Some mtry', false, None) -> [Some mtry'] (* single mtry value *)
-  | (None, true, None) -> (* exponential scan *)
-    (* high values first, for better parallelization if not enough cores
-       (they'll take longer to complete *)
-    L.rev [Some 0.001; Some 0.002; Some 0.005;
-           Some 0.01 ; Some 0.02 ; Some 0.05 ;
-           Some 0.1  ; Some 0.2  ; Some 0.5  ; Some 1.0]
-  | (None, false, Some range_str) ->
-    L.map (fun x_str -> Some (float_of_string x_str))
-      (S.split_on_char ',' range_str)
-  | _ -> failwith "RFR.main: use only one of {--mtry|--scan-mtry|--mtry-range}" in
   let nprocs = CLI.get_int_def ["-np"] args 1 in
   let maybe_output_fn = CLI.get_string_opt ["-o"] args in
   if CLI.get_set_bool ["--valid"] args then failwith "not implemented yet";
@@ -278,6 +263,26 @@ let main () =
       Common.train_test_split !train_portion all_molecules in
     (max_feat + 1, training, testing) in
   Log.info "nb_features: %d" nb_features;
+  (* mtry scan? *)
+  let mtrys = match (CLI.get_float_opt ["--mtry"] args,
+                     CLI.get_set_bool ["--scan-mtry"] args,
+                     CLI.get_string_opt ["--mtry-range"] args) with
+  | (Some mtry', false, None) -> [Some mtry'] (* single mtry value *)
+  | (None, true, None) -> (* exponential scan *)
+    (* high values first, for better parallelization if not enough cores
+       (they'll take longer to complete *)
+    L.rev [Some 0.001; Some 0.002; Some 0.005;
+           Some 0.01 ; Some 0.02 ; Some 0.05 ;
+           Some 0.1  ; Some 0.2  ; Some 0.5  ; Some 1.0]
+  | (None, false, Some range_str) ->
+    L.map (fun x_str -> Some (float_of_string x_str))
+      (S.split_on_char ',' range_str)
+  | (None, false, None) ->
+    (* ranger's default strategy: sqrt(|features|), but converted to a fraction *)
+    let feats = float nb_features in
+    let x = (sqrt feats) /. feats in
+    [Some x]
+  | _ -> failwith "RFR.main: use only one of {--mtry|--scan-mtry|--mtry-range}" in
   match mtrys with
   | [] -> failwith "RFR.main: no mtry value"
   | [mtry'] ->
