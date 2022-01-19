@@ -32,24 +32,25 @@ type mode = Save of string
 
 let train_model
     nb_features verbose nprocs nb_trees mtry training_set model_fn =
-  let train_csv_fn = Fn.temp_file "RFR_train_" ".csv" in
-  Common.csv_dump train_csv_fn nb_features training_set;
-  let could_train =
-    Oranger.RF.train
-      ~debug:verbose ~nprocs Regression nb_trees mtry train_csv_fn
-      "Y" (* name of the target variable column *)
-      model_fn in
-  Utls.enforce could_train (fun () ->
-      "RFR.train_test: could not train: train_csv_fn: " ^ train_csv_fn)
+  Utls.with_temp_file "/tmp" "RFR_train_" ".csv" (fun train_csv_fn ->
+      Common.csv_dump train_csv_fn nb_features training_set;
+      let could_train =
+        Oranger.RF.train
+          ~debug:verbose ~nprocs Regression nb_trees mtry train_csv_fn
+          "Y" (* name of the target variable column *)
+          model_fn in
+      Utls.enforce could_train (fun () ->
+          "RFR.train_test: could not train: train_csv_fn: " ^ train_csv_fn)
+    )
 
 let test_model
     nb_features verbose nb_trees test_set model_fn maybe_output_fn =
-  let test_csv_fn = Fn.temp_file "RFR_test_" ".csv" in
-  Common.csv_dump test_csv_fn nb_features test_set;
   let preds_stdevs =
-    BatOption.get
-      (Oranger.RF.predict ~debug:verbose nb_trees test_csv_fn model_fn) in
-  (if not verbose then Sys.remove test_csv_fn);
+    Utls.with_temp_file "/tmp" "RFR_test_" ".csv" (fun test_csv_fn ->
+        Common.csv_dump test_csv_fn nb_features test_set;
+        BatOption.get
+          (Oranger.RF.predict ~debug:verbose nb_trees test_csv_fn model_fn)
+      ) in
   let names_preds_stdevs =
     let names = L.map Mol.get_name test_set in
     L.map2 Utls.prepend2 names preds_stdevs in
@@ -95,12 +96,13 @@ let train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds training_set
   Parany.Parmap.parfold nprocs
     (fun (train, test) ->
        let actual = L.map Mol.get_value test in
-       let model_fn = Fn.temp_file "RFR_" ".model" in
-       train_model
-         nb_features verbose 1 nb_trees mtry train model_fn;
-       let names_preds_stdevs =
-         test_model nb_features verbose nb_trees test model_fn None in
-       L.map2 Utls.prepend3 actual names_preds_stdevs)
+       Utls.with_temp_file "/tmp" "RFR_" ".model" (fun model_fn ->
+           train_model
+             nb_features verbose 1 nb_trees mtry train model_fn;
+           let names_preds_stdevs =
+             test_model nb_features verbose nb_trees test model_fn None in
+           L.map2 Utls.prepend3 actual names_preds_stdevs)
+    )
     (fun acc x -> L.rev_append x acc)
     [] folds
 
@@ -158,14 +160,14 @@ let test_mtry' verbose nprocs
     | Some nfolds ->
       train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds train
     | None ->
-      begin
-        let model_fn = Fn.temp_file "RFR_" ".model" in
-        train_model nb_features verbose nprocs nb_trees mtry train model_fn;
-        let actual = L.map Mol.get_value test in
-        let names_preds_stdevs =
-          test_model nb_features verbose nb_trees test model_fn None in
-        L.map2 Utls.prepend3 actual names_preds_stdevs
-      end in
+      Utls.with_temp_file "/tmp" "RFR_" ".model" (fun model_fn ->
+          train_model nb_features verbose nprocs nb_trees mtry train model_fn;
+          let actual = L.map Mol.get_value test in
+          let names_preds_stdevs =
+            test_model nb_features verbose nb_trees test model_fn None in
+          
+          L.map2 Utls.prepend3 actual names_preds_stdevs
+        ) in
   let nfolds = BatOption.default 1 maybe_nfolds in
   eval_perfs nfolds rec_plot no_reg_plot train_fn nb_trees mtry_p acts_names_preds_stdevs
 
@@ -312,6 +314,7 @@ let main () =
           let actual = L.map Mol.get_value test in
           let names_preds_stdevs =
             test_model nb_features verbose nb_trees test model_fn maybe_output_fn in
+          (if !mode = Save_to_temp then Sys.remove model_fn);
           L.map2 Utls.prepend3 actual names_preds_stdevs
         end in
     let nfolds = BatOption.default 1 maybe_nfolds in
