@@ -89,23 +89,24 @@ let predict
     (nb_trees: int)
     (data_fn: filename)
     (model_fn: filename): (float * float) list option =
-  let predictions_fn = Filename.temp_file "oranger_" "" in
-  let cmd =
-    sprintf
-      "ml_rf_ranger %s \
-       --file %s --predict %s --nthreads %d --outprefix %s --predall"
-      (if debug then "--verbose" else "")
-      data_fn
-      model_fn
-      nprocs
-      predictions_fn in
-  Log.info "cmd: %s" cmd;
-  let status, log = BatUnix.run_and_read cmd in
-  Log.info "%s" log;
-  match status with
-  | WEXITED 0 ->
-    begin
-      let raw_preds_fn = predictions_fn ^ ".prediction" in
-      Some (read_raw_class_predictions nb_trees raw_preds_fn)
-    end
-  | _ -> None
+  Utls.with_temp_file "/tmp" "oranger_" "" (fun predictions_fn ->
+      let cmd =
+        sprintf
+          "ml_rf_ranger %s \
+           --file %s --predict %s --nthreads %d --outprefix %s --predall"
+          (if debug then "--verbose" else "")
+          data_fn
+          model_fn
+          nprocs
+          predictions_fn in
+      Log.info "cmd: %s" cmd;
+      let status, log = BatUnix.run_and_read cmd in
+      Log.info "%s" log;
+      match status with
+      | WEXITED 0 ->
+        let raw_preds_fn = predictions_fn ^ ".prediction" in
+        let res = Some (read_raw_class_predictions nb_trees raw_preds_fn) in
+        Sys.remove raw_preds_fn;
+        res
+      | _ -> None
+    )
