@@ -249,10 +249,6 @@ let main () =
   let rng = match maybe_seed with
     | None -> Random.State.make_self_init ()
     | Some seed -> Random.State.make [|seed|] in
-  let model_fn = match !mode with
-    | Save_to_temp -> Fn.temp_file "RFR_" ".model"
-    | Load fn -> fn
-    | Save fn -> fn in
   let nb_features, train, test =
     let all_molecules =
       let ordered = LO.map train_fn Mol.of_string in
@@ -302,8 +298,12 @@ let main () =
         train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds train
       | None ->
         begin
+          let model_fn = match !mode with
+            | Save_to_temp -> Fn.temp_file "RFR_" ".model"
+            | Load fn -> fn
+            | Save fn -> fn in
           begin match !mode with
-            | Load _ ->
+            | Load _fn ->
               (* production run *)
               (match maybe_output_fn with
                | None -> failwith "RFR: -o option not given (output scores file)"
