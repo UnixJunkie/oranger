@@ -37,3 +37,9 @@ let combine3 l1 l2 l3 =
     | (x :: xs, y :: ys, z :: zs) -> loop ((x, y, z) :: acc) (xs, ys, zs)
     | _ -> failwith "Utls.combine3: incompatible list lengths" in
   loop [] (l1, l2, l3)
+
+let with_temp_file tmp_dir prfx sfx f =
+  let tmp_fn = Filename.temp_file ~temp_dir:tmp_dir prfx sfx in
+  let res = f tmp_fn in
+  Sys.remove tmp_fn;
+  res
