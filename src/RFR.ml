@@ -97,10 +97,14 @@ let train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds training_set
     (fun (train, test) ->
        let actual = L.map Mol.get_value test in
        Utls.with_temp_file "/tmp" "RFR_" ".model" (fun model_fn ->
+           (* those files are created by ranger; without our consent *)
+           let log_fn = model_fn ^ ".log" in
+           let conf_fn = model_fn ^ ".confusion" in
            train_model
              nb_features verbose 1 nb_trees mtry train model_fn;
            let names_preds_stdevs =
              test_model nb_features verbose nb_trees test model_fn None in
+           List.iter Sys.remove [log_fn; conf_fn];
            L.map2 Utls.prepend3 actual names_preds_stdevs)
     )
     (fun acc x -> L.rev_append x acc)
@@ -161,11 +165,14 @@ let test_mtry' verbose nprocs
       train_test_NxCV verbose nprocs nb_trees mtry nb_features nfolds train
     | None ->
       Utls.with_temp_file "/tmp" "RFR_" ".model" (fun model_fn ->
+          (* those files are created by ranger; without our consent *)
+          let log_fn = model_fn ^ ".log" in
+          let conf_fn = model_fn ^ ".confusion" in
           train_model nb_features verbose nprocs nb_trees mtry train model_fn;
           let actual = L.map Mol.get_value test in
           let names_preds_stdevs =
             test_model nb_features verbose nb_trees test model_fn None in
-          
+          List.iter Sys.remove [log_fn; conf_fn];
           L.map2 Utls.prepend3 actual names_preds_stdevs
         ) in
   let nfolds = BatOption.default 1 maybe_nfolds in
@@ -314,7 +321,12 @@ let main () =
           let actual = L.map Mol.get_value test in
           let names_preds_stdevs =
             test_model nb_features verbose nb_trees test model_fn maybe_output_fn in
-          (if !mode = Save_to_temp then Sys.remove model_fn);
+          (if !mode = Save_to_temp then
+             (* those files are created by ranger; without our consent *)
+             let log_fn = model_fn ^ ".log" in
+             let conf_fn = model_fn ^ ".confusion" in
+             List.iter Sys.remove [model_fn; log_fn; conf_fn]
+          );
           L.map2 Utls.prepend3 actual names_preds_stdevs
         end in
     let nfolds = BatOption.default 1 maybe_nfolds in
