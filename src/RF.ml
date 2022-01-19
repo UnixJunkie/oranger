@@ -105,8 +105,10 @@ let predict
       match status with
       | WEXITED 0 ->
         let raw_preds_fn = predictions_fn ^ ".prediction" in
+        (* the log file is created by ranger, even if we did not ask for it *)
+        let log_fn = predictions_fn ^ ".log" in
         let res = Some (read_raw_class_predictions nb_trees raw_preds_fn) in
-        Sys.remove raw_preds_fn;
+        L.iter Sys.remove [raw_preds_fn; log_fn];
         res
       | _ -> None
     )
