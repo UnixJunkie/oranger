@@ -245,6 +245,9 @@ let main () =
        mode := (Load fn))
   end;
   let y_rand = CLI.get_set_bool ["--y-rand"] args in
+  let maybe_mtry = CLI.get_float_opt ["--mtry"] args in
+  let scan_mtry = CLI.get_set_bool ["--scan-mtry"] args in
+  let mtry_range = CLI.get_string_opt ["--mtry-range"] args in
   CLI.finalize(); (* ------------------------------------------------------- *)
   let rng = match maybe_seed with
     | None -> Random.State.make_self_init ()
@@ -269,9 +272,7 @@ let main () =
     (max_feat + 1, training, testing) in
   Log.info "nb_features: %d" nb_features;
   (* mtry scan? *)
-  let mtrys = match (CLI.get_float_opt ["--mtry"] args,
-                     CLI.get_set_bool ["--scan-mtry"] args,
-                     CLI.get_string_opt ["--mtry-range"] args) with
+  let mtrys = match (maybe_mtry, scan_mtry, mtry_range) with
   | (Some mtry', false, None) -> [Some mtry'] (* single mtry value *)
   | (None, true, None) -> (* exponential scan *)
     (* high values first, for better parallelization if not enough cores
